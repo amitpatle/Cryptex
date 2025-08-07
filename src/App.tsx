@@ -45,14 +45,14 @@ function App() {
     setIsLoading(true);
     try {
       // Get unique currencies
-      const currencies = [...new Set(wallets.map(w => w.currency.toLowerCase()))];
+      const currencies = [...new Set(wallets.map(w => w.currency))];
       
       // Load prices
       const priceResult = await CryptoApiService.getPrices(currencies);
       if (priceResult.success && priceResult.data) {
         const priceMap: { [key: string]: CryptoPrice } = {};
         priceResult.data.forEach(price => {
-          priceMap[price.symbol.toLowerCase()] = price;
+          priceMap[price.symbol] = price;
         });
         setPrices(priceMap);
       }
@@ -62,18 +62,18 @@ function App() {
         wallets.map(async (wallet) => {
           let balanceResult;
           
-          switch (wallet.currency.toLowerCase()) {
-            case 'bitcoin':
-            case 'btc':
+          switch (wallet.currency.toUpperCase()) {
+            case 'BITCOIN':
+            case 'BTC':
               balanceResult = await CryptoApiService.getBitcoinBalance(wallet.address);
               break;
-            case 'ethereum':
-            case 'eth':
+            case 'ETHEREUM':
+            case 'ETH':
               balanceResult = await CryptoApiService.getEthereumBalance(wallet.address);
               break;
             default:
-              // For demo purposes, use random balance for other currencies
-              balanceResult = { success: true, data: Math.random() * 10 };
+              // For other currencies, use a mock balance
+              balanceResult = { success: true, data: Math.random() * 5 + 0.1 };
           }
 
           if (balanceResult.success && balanceResult.data !== undefined) {
@@ -95,6 +95,8 @@ function App() {
       }
     } catch (error) {
       console.error('Error loading prices and balances:', error);
+      // Show user-friendly error message
+      console.warn('Using offline mode with mock data');
     } finally {
       setIsLoading(false);
     }
@@ -135,14 +137,14 @@ function App() {
 
   const getTotalPortfolioValue = () => {
     return wallets.reduce((total, wallet) => {
-      const price = prices[wallet.currency.toLowerCase()]?.price || 0;
+      const price = prices[wallet.currency]?.price || 0;
       return total + (wallet.balance * price);
     }, 0);
   };
 
   const getPortfolioChange = () => {
     const totalChange = wallets.reduce((total, wallet) => {
-      const price = prices[wallet.currency.toLowerCase()];
+      const price = prices[wallet.currency];
       if (!price) return total;
       const value = wallet.balance * price.price;
       const change = (value * price.change24h) / 100;
@@ -226,8 +228,8 @@ function App() {
         {wallets.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {wallets.map((wallet) => {
-              const price = prices[wallet.currency.toLowerCase()]?.price || 0;
-              const change24h = prices[wallet.currency.toLowerCase()]?.change24h || 0;
+              const price = prices[wallet.currency]?.price || 0;
+              const change24h = prices[wallet.currency]?.change24h || 0;
               
               return (
                 <WalletCard

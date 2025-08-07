@@ -12,16 +12,18 @@
   "dependencies": {
     "@ethersproject/providers": "^5.8.0",
     "@ethersproject/wallet": "^5.8.0",
+    "@types/crypto-js": "^4.2.2",
     "axios": "^1.11.0",
     "bitcoinjs-lib": "^6.1.7",
     "crypto-js": "^4.2.0",
     "lucide-react": "^0.344.0",
-    "qrcode.js": "^0.0.1",
+    "qrcode": "^1.5.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",

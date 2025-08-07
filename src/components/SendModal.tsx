@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Send, AlertTriangle } from 'lucide-react';
 import { Wallet } from '../types/wallet';
 import { CryptoApiService } from '../services/cryptoApi';
+import { WalletService } from '../services/walletService';
 
 interface SendModalProps {
   isOpen: boolean;
@@ -26,8 +27,10 @@ export const SendModal: React.FC<SendModalProps> = ({
 
     if (!toAddress.trim()) {
       newErrors.toAddress = 'Recipient address is required';
-    } else if (toAddress.length < 25) {
+    } else if (!WalletService.validateAddress(toAddress.trim(), wallet.currency)) {
       newErrors.toAddress = 'Invalid address format';
+    } else if (toAddress.trim().toLowerCase() === wallet.address.toLowerCase()) {
+      newErrors.toAddress = 'Cannot send to the same address';
     }
 
     if (!amount.trim()) {
@@ -36,8 +39,12 @@ export const SendModal: React.FC<SendModalProps> = ({
       const amountNum = parseFloat(amount);
       if (isNaN(amountNum) || amountNum <= 0) {
         newErrors.amount = 'Amount must be greater than 0';
+      } else if (amountNum < 0.000001) {
+        newErrors.amount = 'Amount too small (minimum 0.000001)';
       } else if (amountNum > wallet.balance) {
         newErrors.amount = 'Insufficient balance';
+      } else if (amountNum > maxAmount) {
+        newErrors.amount = 'Amount exceeds available balance after fees';
       }
     }
 
@@ -59,16 +66,16 @@ export const SendModal: React.FC<SendModalProps> = ({
       );
 
       if (result.success) {
-        alert(`Transaction sent successfully! Hash: ${result.data}`);
+        alert(`Transaction sent successfully!\nHash: ${result.data}\n\nNote: This is a demo transaction.`);
         onTransactionSent();
         resetForm();
         onClose();
       } else {
-        alert(`Failed to send transaction: ${result.error}`);
+        alert(`Failed to send transaction: ${result.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error sending transaction:', error);
-      alert('Failed to send transaction');
+      alert('Failed to send transaction. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -80,7 +87,8 @@ export const SendModal: React.FC<SendModalProps> = ({
     setErrors({});
   };
 
-  const maxAmount = wallet.balance * 0.95; // Reserve 5% for fees
+  const estimatedFee = 0.001;
+  const maxAmount = Math.max(0, wallet.balance - estimatedFee);
 
   if (!isOpen) return null;
 
@@ -167,24 +175,28 @@ export const SendModal: React.FC<SendModalProps> = ({
           <div className="bg-gray-50 rounded-lg p-3">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Estimated Fee:</span>
-              <span className="text-gray-800">~0.001 {wallet.currency}</span>
+              <span className="text-gray-800">~{estimatedFee} {wallet.currency}</span>
             </div>
             <div className="flex justify-between text-sm mt-1">
               <span className="text-gray-600">Total:</span>
               <span className="font-medium text-gray-800">
-                {amount ? (parseFloat(amount) + 0.001).toFixed(6) : '0.001'} {wallet.currency}
+                {amount ? (parseFloat(amount) + estimatedFee).toFixed(6) : estimatedFee.toFixed(6)} {wallet.currency}
               </span>
             </div>
           </div>
 
           <button
             onClick={handleSend}
-            disabled={isLoading || !toAddress.trim() || !amount.trim()}
+            disabled={isLoading || !toAddress.trim() || !amount.trim() || Object.keys(errors).length > 0}
             className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:from-green-700 hover:to-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
           >
             <Send className="w-4 h-4" />
             <span>{isLoading ? 'Sending...' : 'Send Transaction'}</span>
           </button>
+          
+          <p className="text-xs text-gray-500 text-center mt-2">
+            This is a demo application. No real transactions will be sent.
+          </p>
         </div>
       </div>
     </div>
